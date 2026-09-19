@@ -1,0 +1,913 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="A 428-document research corpus read as a storage system: one root catalog, twelve index views, three partitions, thirty-six shards.">
+<style>
+  :root{color-scheme:light dark}
+  body{margin:0;font:14px system-ui,sans-serif}
+  img{max-width:100%}
+  [hidden]{display:none!important}
+</style>
+<title>Lions Jaw System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chivo:wght@400;700;900&family=Newsreader:ital,wght@0,400;0,500;1,400&family=JetBrains+Mono:wght@400;700&display=swap">
+<style>
+:root{
+  --paper:#eef1f6; --panel:#ffffff; --sunk:#e4e9f1;
+  --ink:#0e1726; --body:#25324a; --dim:#5d6d87; --rule:#cdd6e4;
+  --arch:#8a6410; --main:#0b5e4e; --out:#a8264e; --view:#6a3fb0;
+  --arch-wash:#f6efdd; --main-wash:#e2f3ee; --out-wash:#f9e6e5; --view-wash:#ece6f8;
+  --mount:#0a0f1a;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#080d16; --panel:#101c2e; --sunk:#0c1524;
+    --ink:#e9eef7; --body:#c3cfe0; --dim:#8ba1bf; --rule:#22334c;
+    --arch:#f2c14e; --main:#7fe0c0; --out:#e0716f; --view:#b68cf0;
+    --arch-wash:#231c0d; --main-wash:#0d2420; --out-wash:#241314; --view-wash:#1b1430;
+    --mount:#05090f;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#080d16; --panel:#101c2e; --sunk:#0c1524;
+  --ink:#e9eef7; --body:#c3cfe0; --dim:#8ba1bf; --rule:#22334c;
+  --arch:#f2c14e; --main:#7fe0c0; --out:#e0716f; --view:#b68cf0;
+  --arch-wash:#231c0d; --main-wash:#0d2420; --out-wash:#241314; --view-wash:#1b1430;
+  --mount:#05090f;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--paper); color:var(--body);
+  font-family:"Newsreader",Georgia,"Times New Roman",serif;
+  font-size:17px; line-height:1.6;
+  padding-block:0; padding-left:20px; padding-right:20px;
+}
+.wrap{max-width:1180px; margin:0 auto}
+h1,h2,h3,.ui{font-family:"Chivo","Helvetica Neue",Arial,sans-serif}
+.mono,code{font-family:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  font-variant-numeric:tabular-nums}
+h1,h2,h3{color:var(--ink); text-wrap:balance; margin:0}
+a{color:inherit}
+
+/* ---------- cover ---------- */
+.cover{margin:0; padding-block:28px 0}
+.cover .frame{position:relative; background:#221709; border:1px solid var(--rule);
+  overflow:hidden}
+.cover img{display:block; width:100%; height:clamp(180px,30vw,340px);
+  object-fit:cover; object-position:center 42%}
+.cover .frame::after{content:""; position:absolute; inset:auto 0 0 0; height:55%;
+  background:linear-gradient(to top,var(--paper),transparent); pointer-events:none}
+.cover .plate-id{position:absolute; left:14px; bottom:12px; z-index:1;
+  font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.18em;
+  text-transform:uppercase; color:var(--arch)}
+
+/* ---------- masthead ---------- */
+.mast{padding-block:28px 32px; border-bottom:2px solid var(--ink)}
+.eyebrow{font-size:11px; letter-spacing:.18em; text-transform:uppercase;
+  color:var(--dim); display:flex; gap:18px; flex-wrap:wrap}
+h1{font-size:clamp(38px,6.4vw,76px); font-weight:900; letter-spacing:-.025em;
+  line-height:.98; margin-block:18px 14px}
+.standfirst{font-size:clamp(18px,2.1vw,22px); max-width:62ch; color:var(--body)}
+.standfirst em{color:var(--ink); font-style:italic}
+
+/* ---------- figure strip ---------- */
+.figures{display:grid; grid-template-columns:repeat(6,1fr);
+  border-bottom:1px solid var(--rule)}
+.fig{padding:18px 16px 20px; border-right:1px solid var(--rule)}
+.fig:last-child{border-right:0}
+.fig b{display:block; font-family:"JetBrains Mono",monospace; font-size:26px;
+  font-weight:700; color:var(--ink); letter-spacing:-.03em;
+  font-variant-numeric:tabular-nums}
+.fig span{display:block; font-size:10.5px; letter-spacing:.12em;
+  text-transform:uppercase; color:var(--dim); margin-top:5px;
+  font-family:"Chivo",sans-serif}
+@media(max-width:760px){.figures{grid-template-columns:repeat(2,1fr)}
+  .fig{border-bottom:1px solid var(--rule)}
+  .fig:nth-child(2n){border-right:0}}
+
+/* ---------- sections ---------- */
+section{padding-block:64px; border-bottom:1px solid var(--rule)}
+.shead{display:flex; align-items:baseline; gap:16px; flex-wrap:wrap;
+  margin-bottom:10px}
+.shead h2{font-size:clamp(24px,3vw,34px); font-weight:700; letter-spacing:-.02em}
+.tier{font-family:"JetBrains Mono",monospace; font-size:11px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--dim); border:1px solid var(--rule);
+  padding:3px 8px}
+.lede{max-width:66ch; margin-bottom:36px}
+
+/* ---------- plate ---------- */
+.plate{background:var(--mount); border:1px solid var(--rule); padding:10px;
+  overflow-x:auto}
+.plate img{display:block; width:100%; min-width:900px; max-width:100%; height:auto}
+.plate--fit{padding:8px}
+.plate--fit img{min-width:0}
+.pcap{font-family:"JetBrains Mono",monospace; font-size:10.5px; color:var(--dim);
+  margin-top:8px; letter-spacing:-.01em}
+.caption{display:flex; gap:20px; flex-wrap:wrap; margin-top:14px;
+  font-size:12.5px; color:var(--dim); font-family:"Chivo",sans-serif}
+.swatch{display:inline-flex; align-items:center; gap:7px}
+.swatch i{width:11px; height:11px; border-radius:50%; display:inline-block}
+
+/* ---------- schema table ---------- */
+.schema{width:100%; border-collapse:collapse; font-size:15px}
+.schema th{text-align:left; font-family:"Chivo",sans-serif; font-size:10.5px;
+  letter-spacing:.13em; text-transform:uppercase; color:var(--dim);
+  padding:0 14px 10px 0; border-bottom:1px solid var(--ink)}
+.schema td{padding:13px 14px 13px 0; border-bottom:1px solid var(--rule);
+  vertical-align:top}
+.schema tr td:first-child{color:var(--ink); font-weight:500}
+.schema .n{font-family:"JetBrains Mono",monospace; font-size:14px;
+  color:var(--ink); white-space:nowrap; text-align:right; padding-right:0}
+.schema td.dfig{font-family:"JetBrains Mono",monospace; font-size:13.5px;
+  letter-spacing:-.01em}
+.tblwrap{overflow-x:auto}
+
+/* ---------- view rows: explanation beside its own plate ---------- */
+.views{border-top:1px solid var(--rule)}
+.view{display:grid; grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);
+  gap:34px; padding:32px 0 34px; border-bottom:1px solid var(--rule);
+  align-items:start}
+.view:target{background:var(--view-wash);
+  box-shadow:0 0 0 14px var(--view-wash)}
+.vtext{display:flex; flex-direction:column; gap:10px; min-width:0}
+@media(max-width:840px){.view{grid-template-columns:1fr; gap:20px}}
+.vtop{display:flex; align-items:center; gap:11px}
+.vid{font-family:"JetBrains Mono",monospace; font-weight:700; font-size:15px;
+  color:var(--view)}
+.view h3{font-size:19px; font-weight:700; letter-spacing:-.01em; line-height:1.2}
+.claim{font-style:italic; color:var(--ink); font-size:16px}
+.view p{margin:0; font-size:15.5px}
+.meta{font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--dim);
+  letter-spacing:-.01em; border-top:1px solid var(--rule); padding-top:10px}
+.routes{display:flex; flex-wrap:wrap; gap:5px; padding-top:4px}
+.chip{font-family:"JetBrains Mono",monospace; font-size:11px; padding:2px 6px;
+  border:1px solid currentColor; text-decoration:none; line-height:1.5}
+.chip:focus-visible,.view:focus-visible{outline:2px solid var(--ink);
+  outline-offset:2px}
+.c-A{color:var(--arch)} .c-M{color:var(--main)} .c-O{color:var(--out)}
+.c-V{color:var(--view)}
+
+/* ---------- the disk-stack icon ---------- */
+.dbi{display:block; height:auto; flex:none}
+.dbi-sm{width:26px}
+.dbi-md{width:32px}
+.dbi-lg{width:46px}
+.sidwrap{display:flex; align-items:center; gap:9px}
+
+/* ---------- partitions + shards ---------- */
+.partition{margin-bottom:52px}
+.phead{display:flex; align-items:center; gap:14px; flex-wrap:wrap;
+  padding-bottom:12px; border-bottom:2px solid currentColor; margin-bottom:0}
+.pplate{margin-top:22px}
+.pplate + .shard{border-top:1px solid var(--rule)}
+.phead h3{font-size:clamp(20px,2.6vw,28px); font-weight:900; letter-spacing:-.02em;
+  color:currentColor}
+.prole{font-family:"JetBrains Mono",monospace; font-size:11.5px; color:var(--dim)}
+.pfigs{margin-left:auto; font-family:"JetBrains Mono",monospace; font-size:11.5px;
+  color:var(--dim)}
+.shard{display:grid; grid-template-columns:82px 1fr; gap:0 26px;
+  padding:22px 0; border-bottom:1px solid var(--rule)}
+.shard:target{background:var(--sunk)}
+.sid{font-family:"JetBrains Mono",monospace; font-weight:700; font-size:15px;
+  color:currentColor; padding-top:2px}
+.bar{height:5px; margin-top:9px; background:currentColor; opacity:.55}
+.scount{font-family:"JetBrains Mono",monospace; font-size:10.5px; color:var(--dim);
+  margin-top:5px; display:block}
+.shard h4{margin:0 0 3px; font-family:"Chivo",sans-serif; font-size:19px;
+  font-weight:700; color:var(--ink); letter-spacing:-.01em}
+.shard .claim{font-size:15.5px; margin-bottom:8px}
+.shard p{margin:0 0 10px; max-width:72ch; font-size:16px}
+.unindexed{border-left:3px solid var(--out); background:var(--out-wash);
+  padding:16px 18px; margin-top:8px; font-size:15.5px}
+.unindexed b{font-family:"Chivo",sans-serif; color:var(--out); font-size:12px;
+  letter-spacing:.1em; text-transform:uppercase; display:block; margin-bottom:5px}
+@media(max-width:620px){
+  .shard{grid-template-columns:1fr; gap:10px}
+  .bar{max-width:180px}
+}
+
+/* ---------- the three-ring reference ---------- */
+.stackref{display:grid; grid-template-columns:auto minmax(200px,320px);
+  justify-content:center; align-items:stretch; margin:10px 0 44px}
+.stackimg{width:min(232px,44vw); align-self:center; display:block}
+.rings{position:relative}
+.ring{position:absolute; left:0; transform:translateY(-50%);
+  display:flex; align-items:center; gap:14px}
+.ring::before{content:""; width:40px; height:2px; background:currentColor;
+  flex:none; opacity:.9}
+.ring b{display:block; font-family:"Chivo",sans-serif; font-size:15.5px;
+  font-weight:700; color:currentColor; letter-spacing:-.01em; line-height:1.2}
+.ring span{display:block; font-family:"JetBrains Mono",monospace;
+  font-size:10.5px; color:var(--dim); margin-top:4px}
+@media(max-width:640px){
+  .stackref{grid-template-columns:1fr; justify-items:center; gap:22px}
+  .rings{display:flex; flex-direction:column; gap:14px; width:100%}
+  .ring{position:static; transform:none}
+  .ring::before{width:22px}
+}
+
+/* ---------- replication ---------- */
+.pipe{display:grid; grid-template-columns:1fr auto 1fr auto 1fr; gap:14px;
+  align-items:stretch}
+.stage{background:var(--panel); border:1px solid currentColor; padding:18px 18px 20px}
+.stage h4{margin:0 0 4px; font-family:"Chivo",sans-serif; font-size:16px;
+  font-weight:700; color:currentColor}
+.stage .op{font-family:"JetBrains Mono",monospace; font-size:11px; color:var(--dim);
+  display:block; margin-bottom:8px}
+.stage p{margin:0; font-size:15px}
+.arrow{align-self:center; font-family:"JetBrains Mono",monospace; font-size:11px;
+  color:var(--dim); text-align:center; white-space:nowrap}
+@media(max-width:860px){.pipe{grid-template-columns:1fr}
+  .arrow{transform:rotate(90deg); padding:6px 0}}
+
+/* ---------- integrity note + footer ---------- */
+.note{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:26px; margin-top:34px}
+.note div{border-top:2px solid var(--ink); padding-top:12px}
+.note h4{margin:0 0 6px; font-family:"Chivo",sans-serif; font-size:14px;
+  color:var(--ink); letter-spacing:-.01em}
+.note p{margin:0; font-size:14.5px}
+footer{padding-block:40px 64px; font-family:"JetBrains Mono",monospace;
+  font-size:11.5px; color:var(--dim); display:flex; gap:24px; flex-wrap:wrap}
+@media(prefers-reduced-motion:no-preference){
+  .shard:target,.view:target{transition:background .5s ease}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+<figure class="cover">
+<div class="frame"><img src="assets/lion-cover.jpg" srcset="assets/lion-cover-880.jpg 880w, assets/lion-cover.jpg 1536w" sizes="(max-width:1180px) 100vw, 1180px" alt="A lion&rsquo;s head lit gold against a dark field of linked nodes, the cover plate of the corpus." fetchpriority="high"><span class="plate-id">Cover &middot; Lion&rsquo;s Jaw</span></div>
+</figure>
+<header class="mast">
+<div class="eyebrow"><span>Catalog reader</span><span class="mono">schema 2026.08.29</span><span class="mono">3 partitions &middot; 36 shards</span></div>
+<h1>Lions Jaw System</h1>
+<p class="standfirst">A 428-document research corpus, read as the thing it actually is: a <em>storage system</em>. One root catalog, twelve cross-partition index views, three partitions holding thirty-six shards, and every record sitting in every shard it load-bears in.</p>
+</header>
+<div class="figures">
+<div class="fig"><b>428</b><span>records</span></div>
+<div class="fig"><b>36</b><span>shards</span></div>
+<div class="fig"><b>12</b><span>index views</span></div>
+<div class="fig"><b>3</b><span>partitions</span></div>
+<div class="fig"><b>68</b><span>index pointers</span></div>
+<div class="fig"><b>647</b><span>attachments</span></div>
+</div>
+<section id="map">
+<div class="shead"><h2>The topology</h2><span class="tier">fig. 1 &middot; full graph</span></div>
+<p class="lede">Read <b>down</b> for structure — catalog resolves to an index view, a view to shards, a shard to records. Read <b>across</b> for argument: one claim walked through several shards in order. The bar hanging under each shard is its record depth.</p>
+<div class="plate"><img src="corpus_storage_map.png" alt="Topology of the corpus: a root catalog above twelve index views, resolving down into thirty-six shards across three partitions, each with a bar showing its record depth."></div>
+<div class="caption"><span class="swatch"><i style="background:var(--view)"></i>index tier</span><span class="swatch"><i style="background:var(--arch)"></i>ARCHITECTURE</span><span class="swatch"><i style="background:var(--main)"></i>MAIN</span><span class="swatch"><i style="background:var(--out)"></i>OUTPUTS</span><span>Arc color names the destination partition, not the source view.</span></div>
+</section>
+<section id="schema">
+<div class="shead"><h2>What each figure counts</h2><span class="tier">object &rarr; database figure</span></div>
+<p class="lede">The vocabulary on the diagram is not a metaphor stretched over the corpus — each label names a structure the folder tree already has. This is the mapping.</p>
+<div class="tblwrap"><table class="schema"><thead><tr><th>Corpus object</th><th>Database figure</th><th>What it does</th><th class="n">Count</th></tr></thead><tbody>
+<tr><td><code>_MASTER INDEX.md</code></td><td class="dfig">root catalog / control plane</td><td>Holds the schema. Knows every view, shard and count; stores no records.</td><td class="n">1</td></tr>
+<tr><td>&Omega; topic (<code>_MAP/</code>)</td><td class="dfig">global secondary index</td><td>A cross-partition view: one claim, resolved into every partition that carries it.</td><td class="n">12</td></tr>
+<tr><td>Corpus folder</td><td class="dfig">partition</td><td>A physical split with its own write profile — cold, hot, serving.</td><td class="n">3</td></tr>
+<tr><td>Hub (<code>_hubs/</code>)</td><td class="dfig">shard</td><td>The unit records are actually placed in. Carries its own opening paragraph as a shard description.</td><td class="n">36</td></tr>
+<tr><td>Theory document</td><td class="dfig">record</td><td>The leaf. Immutable once distilled; rewritten only by moving partition.</td><td class="n">428</td></tr>
+<tr><td>&Omega; &rarr; hub wikilink</td><td class="dfig">index pointer</td><td>One edge from a view down to a shard. Drawn as an arc on fig. 1.</td><td class="n">68</td></tr>
+<tr><td>Theory &rarr; hub attachment</td><td class="dfig">index entry</td><td>A record listed under a shard. One record may hold several.</td><td class="n">647</td></tr>
+<tr><td>Hub with no <b>Routes up to</b></td><td class="dfig">unindexed shard</td><td>Reachable from the catalog only — no view resolves into it.</td><td class="n">2</td></tr>
+<tr><td>Cross-section route</td><td class="dfig">range scan</td><td>The read-across path at the foot of each folder index.</td><td class="n">3</td></tr>
+</tbody></table></div>
+</section>
+<section id="views">
+<div class="shead"><h2>The index tier</h2><span class="tier">12 global secondary indexes</span></div>
+<p class="lede">A view owns no records. It owns pointers — and it exists because the same claim surfaces in all three partitions at different altitudes, so no single partition scan would return it whole. Fan-out is how many shards it resolves into.</p>
+<div class="views">
+<article class="view" id="v-Ω1">
+<div class="vtext">
+<div class="vtop"><img class="dbi dbi-md" src="assets/db-view.png" alt=""><span class="vid">Ω1</span><h3>Divergence &amp; Convergence</h3></div>
+<p class="claim">The two strokes every generative system runs, and the ratio between them.</p>
+<p>Expansion that raises degrees of freedom, and compression that turns what was found into load-bearing structure. Neither works alone: permanent widening produces ungrounded noise, permanent narrowing produces local polishing. What is actually managed is not either stroke but the ratio between them, and that ratio is the object across every scale the corpus touches — a single act of prediction, a research method, an innovation cycle, a civilization's capacity to keep refining.</p>
+<div class="meta">fan-out 6 &middot; partitions 3 &middot; ~116 records reachable
+<div class="routes">
+<a class="chip c-A" data-jump href="#s-A1">A1</a>
+<a class="chip c-A" data-jump href="#s-A7">A7</a>
+<a class="chip c-A" data-jump href="#s-A3">A3</a>
+<a class="chip c-M" data-jump href="#s-M1">M1</a>
+<a class="chip c-M" data-jump href="#s-M2">M2</a>
+<a class="chip c-O" data-jump href="#s-O5">O5</a>
+</div></div></div>
+<div><div class="plate plate--fit"><img src="plates/v01.png" alt="Ω1 resolves into 6 shards: A1 Root Invariants, 14 records; A7 Iteration Geometry, 17 records; A3 The Single Dial, 19 records; M1 Method &amp; Theory Eng., 25 records; M2 Iteration &amp; Choke Point, 24 records; O5 Adaptation &amp; Selection, 17 records."></div><p class="pcap">fig. 2 &middot; Ω1 &rarr; named shards, grouped by partition</p></div>
+</article>
+<article class="view" id="v-Ω2">
+<div class="vtext">
+<div class="vtop"><img class="dbi dbi-md" src="assets/db-view.png" alt=""><span class="vid">Ω2</span><h3>Density, Grade &amp; the One-Way Arrow</h3></div>
+<p class="claim">Capability is reality-per-unit, and the arrow that manufactures it does not reverse.</p>
+<p>Two systems holding identical information can differ by orders of magnitude in capability, because what counts is meaningful connection mass per unit of branching volume. Density behaves as mass: the denser structure reinterprets the thinner one on contact. It is produced only in the forward direction — raw reality converges upward into compressed tokens, and tokens never decompress back into reality. Grade is position on that scale, and grade decides direction of flow.</p>
+<div class="meta">fan-out 6 &middot; partitions 3 &middot; ~119 records reachable
+<div class="routes">
+<a class="chip c-A" data-jump href="#s-A1">A1</a>
+<a class="chip c-A" data-jump href="#s-A6">A6</a>
+<a class="chip c-M" data-jump href="#s-M5">M5</a>
+<a class="chip c-M" data-jump href="#s-M4">M4</a>
+<a class="chip c-O" data-jump href="#s-O1">O1</a>
+<a class="chip c-O" data-jump href="#s-O2">O2</a>
+</div></div></div>
+<div><div class="plate plate--fit"><img src="plates/v02.png" alt="Ω2 resolves into 6 shards: A1 Root Invariants, 14 records; A6 Density &amp; Command, 20 records; M5 Refinement Gradient, 25 records; M4 The Operating Triad, 38 records; O1 What Civilization Is, 13 records; O2 What AI Is, 9 records."></div><p class="pcap">fig. 3 &middot; Ω2 &rarr; named shards, grouped by partition</p></div>
+</article>
+<article class="view" id="v-Ω3">
+<div class="vtext">
+<div class="vtop"><img class="dbi dbi-md" src="assets/db-view.png" alt=""><span class="vid">Ω3</span><h3>The Vertical Refinement Gradient</h3></div>
+<p class="claim">Stacked conversion layers where each height converts the one beneath and gains authority over it.</p>
+<p>The load-bearing structure of the whole corpus. Abundant low-grade input at the base, scarce high-grade output at the top, and at every interface a conversion that is simultaneously an act of command. Crossed by a horizontal contest inside each layer that decides occupancy and substrate quality. Whether the subject is Maslow's hierarchy, a corporate stack, a trophic chain, a chess ranking or a planetary compute hierarchy, the same two axes are doing the work.</p>
+<div class="meta">fan-out 5 &middot; partitions 3 &middot; ~99 records reachable
+<div class="routes">
+<a class="chip c-A" data-jump href="#s-A4">A4</a>
+<a class="chip c-A" data-jump href="#s-A5">A5</a>
+<a class="chip c-M" data-jump href="#s-M5">M5</a>
+<a class="chip c-O" data-jump href="#s-O1">O1</a>
+<a class="chip c-O" data-jump href="#s-O3">O3</a>
+</div></div></div>
+<div><div class="plate plate--fit"><img src="plates/v03.png" alt="Ω3 resolves into 5 shards: A4 Vertical Engine, 25 records; A5 Substrate &amp; Governed Base, 18 records; M5 Refinement Gradient, 25 records; O1 What Civilization Is, 13 records; O3 Power &amp; Positioning, 18 records."></div><p class="pcap">fig. 4 &middot; Ω3 &rarr; named shards, grouped by partition</p></div>
+</article>
+<article class="view" id="v-Ω4">
+<div class="vtext">
+<div class="vtop"><img class="dbi dbi-md" src="assets/db-view.png" alt=""><span class="vid">Ω4</span><h3>Force, Refusal &amp; Route Count</h3></div>
+<p class="claim">Force is a registered differential divided by viable routes. Only refusals deposit.</p>
+<p>The most formal statement the corpus reaches. A difference is inert until something registers it and can move toward it; the force it then exerts falls as the number of paths to equalize along rises. Structure is never laid down by successful crossings — it is the residue of the ones that failed. This gives a single variable behind selection, deposition and decay, and makes containment, visibility, monopoly and installed authority all operations on one denominator.</p>
+<div class="meta">fan-out 5 &middot; partitions 3 &middot; ~119 records reachable
+<div class="routes">
+<a class="chip c-A" data-jump href="#s-A2">A2</a>
+<a class="chip c-A" data-jump href="#s-A9">A9</a>
+<a class="chip c-M" data-jump href="#s-M3">M3</a>
+<a class="chip c-M" data-jump href="#s-M6">M6</a>
+<a class="chip c-O" data-jump href="#s-O3">O3</a>
+</div></div></div>
+<div><div class="plate plate--fit"><img src="plates/v04.png" alt="Ω4 resolves into 5 shards: A2 Force &amp; Refusal Ledger, 24 records; A9 Leverage &amp; Terrain, 18 records; M3 Prediction &amp; Collapse, 30 records; M6 Leverage &amp; Resonance, 29 records; O3 Power &amp; Positioning, 18 records."></div><p class="pcap">fig. 5 &middot; Ω4 &rarr; named shards, grouped by partition</p></div>
+</article>
+<article class="view" id="v-Ω5">
+<div class="vtext">
+<div class="vtop"><img class="dbi dbi-md" src="assets/db-view.png" alt=""><span class="vid">Ω5</span><h3>The Judging Surface &amp; the Single Dial</h3></div>
+<p class="claim">The thing that filters and the thing that is climbed are one object, and it narrows as it runs.</p>
+<p>A selector accumulates every verdict it issues, so refinement and restriction are the same purchase made once. Order and disorder are not two substances but one dial run in opposite directions against that surface's admissible band. The consequence is a default drift toward closure that is invisible from inside, because a sealed surface produces fast confident judgments and reads as diligence right up to the point where nothing capable of changing it can get in.</p>
+<div class="meta">fan-out 5 &middot; partitions 3 &middot; ~91 records reachable
+<div class="routes">
+<a class="chip c-A" data-jump href="#s-A3">A3</a>
+<a class="chip c-A" data-jump href="#s-A1">A1</a>
+<a class="chip c-A" data-jump href="#s-A7">A7</a>
+<a class="chip c-M" data-jump href="#s-M2">M2</a>
+<a class="chip c-O" data-jump href="#s-O5">O5</a>
+</div></div></div>
+<div><div class="plate plate--fit"><img src="plates/v05.png" alt="Ω5 resolves into 5 shards: A3 The Single Dial, 19 records; A1 Root Invariants, 14 records; A7 Iteration Geometry, 17 records; M2 Iteration &amp; Choke Point, 24 records; O5 Adaptation &amp; Selection, 17 records."></div><p class="pcap">fig. 6 &middot; Ω5 &rarr; named shards, grouped by partition</p></div>
+</article>
+<article class="view" id="v-Ω6">
+<div class="vtext">
+<div class="vtop"><img class="dbi dbi-md" src="assets/db-view.png" alt=""><span class="vid">Ω6</span><h3>Generator &amp; Surface</h3></div>
+<p class="claim">The permanent leverage divide: what is visible, and what decides what can be visible.</p>
+<p>Every generative system stratifies into a surface the environment touches and a compressed generator beneath it that determines which surface states remain producible at all. Only the lower layer retains anything across cycles. Effort spent on the surface produces gains that do not repeat; effort that reaches the generator is re-amplified on every subsequent pass. Where a node attaches to the flow becomes its station — which makes the mode of refinement a positional decision, not a stylistic one.</p>
+<div class="meta">fan-out 6 &middot; partitions 3 &middot; ~105 records reachable
+<div class="routes">
+<a class="chip c-A" data-jump href="#s-A8">A8</a>
+<a class="chip c-A" data-jump href="#s-A11">A11</a>
+<a class="chip c-M" data-jump href="#s-M2">M2</a>
+<a class="chip c-M" data-jump href="#s-M4">M4</a>
+<a class="chip c-O" data-jump href="#s-O2">O2</a>
+<a class="chip c-O" data-jump href="#s-O8">O8</a>
+</div></div></div>
+<div><div class="plate plate--fit"><img src="plates/v06.png" alt="Ω6 resolves into 6 shards: A8 Generator &amp; Surface, 14 records; A11 Stalls &amp; Failure Modes, 12 records; M2 Iteration &amp; Choke Point, 24 records; M4 The Operating Triad, 38 records; O2 What AI Is, 9 records; O8 Applied Playbooks, 8 records."></div><p class="pcap">fig. 7 &middot; Ω6 &rarr; named shards, grouped by partition</p></div>
+</article>
+<article class="view" id="v-Ω7">
+<div class="vtext">
+<div class="vtop"><img class="dbi dbi-md" src="assets/db-view.png" alt=""><span class="vid">Ω7</span><h3>Prediction as Authority</h3></div>
+<p class="claim">Nobody perceives reality directly. The quality of the forecast is the entire contest.</p>
+<p>Perception is a compressed model assembled from partial input, and everything a node does is executed against that model rather than against the world. When two predictive architectures couple, the denser one collapses and re-encodes the thinner — positionally, without any exchange of force. Prediction converts into authority because the system that forecasts the field can occupy it in advance, and authority is what accumulated forecasting looks like from outside.</p>
+<div class="meta">fan-out 6 &middot; partitions 3 &middot; ~113 records reachable
+<div class="routes">
+<a class="chip c-A" data-jump href="#s-A6">A6</a>
+<a class="chip c-A" data-jump href="#s-A9">A9</a>
+<a class="chip c-M" data-jump href="#s-M3">M3</a>
+<a class="chip c-M" data-jump href="#s-M12">M12</a>
+<a class="chip c-O" data-jump href="#s-O3">O3</a>
+<a class="chip c-O" data-jump href="#s-O5">O5</a>
+</div></div></div>
+<div><div class="plate plate--fit"><img src="plates/v07.png" alt="Ω7 resolves into 6 shards: A6 Density &amp; Command, 20 records; A9 Leverage &amp; Terrain, 18 records; M3 Prediction &amp; Collapse, 30 records; M12 Render &amp; Simulation, 10 records; O3 Power &amp; Positioning, 18 records; O5 Adaptation &amp; Selection, 17 records."></div><p class="pcap">fig. 8 &middot; Ω7 &rarr; named shards, grouped by partition</p></div>
+</article>
+<article class="view" id="v-Ω8">
+<div class="vtext">
+<div class="vtop"><img class="dbi dbi-md" src="assets/db-view.png" alt=""><span class="vid">Ω8</span><h3>Leverage Density &amp; the Field</h3></div>
+<p class="claim">Every node is an oscillator; density warps the terrain and the terrain decides the outcome.</p>
+<p>Social and economic reality as one continuous field rather than a set of separate arenas. Elevation at any point is concentrated capability over accessibility. Denser nodes raise steeper peaks, emit cleaner signal, and phase-lock the nodes beneath them — taking a coherence tax on every lock. Relationships resolve into couplings between densities, which is why mismatched pairings become extraction loops and why holding a peak requires consuming the alternatives around it.</p>
+<div class="meta">fan-out 6 &middot; partitions 3 &middot; ~118 records reachable
+<div class="routes">
+<a class="chip c-A" data-jump href="#s-A9">A9</a>
+<a class="chip c-A" data-jump href="#s-A2">A2</a>
+<a class="chip c-M" data-jump href="#s-M6">M6</a>
+<a class="chip c-M" data-jump href="#s-M7">M7</a>
+<a class="chip c-O" data-jump href="#s-O3">O3</a>
+<a class="chip c-O" data-jump href="#s-O8">O8</a>
+</div></div></div>
+<div><div class="plate plate--fit"><img src="plates/v08.png" alt="Ω8 resolves into 6 shards: A9 Leverage &amp; Terrain, 18 records; A2 Force &amp; Refusal Ledger, 24 records; M6 Leverage &amp; Resonance, 29 records; M7 Purity &amp; Duty Cycles, 21 records; O3 Power &amp; Positioning, 18 records; O8 Applied Playbooks, 8 records."></div><p class="pcap">fig. 9 &middot; Ω8 &rarr; named shards, grouped by partition</p></div>
+</article>
+<article class="view" id="v-Ω9">
+<div class="vtext">
+<div class="vtop"><img class="dbi dbi-md" src="assets/db-view.png" alt=""><span class="vid">Ω9</span><h3>Control, Containment &amp; Extraction</h3></div>
+<p class="claim">Control is spectral engineering executed upstream, because behavioural correction never stops costing.</p>
+<p>The cheapest durable control is never applied to behaviour. It is one move made far upstream — install the token, ration the currency, set the intake filter — after which the downstream economy manufactures compliance at no further cost. The instrument is emotion, which collapses cognition into an immediate state where the arrangement is not visible. The complementary move is spectral: broaden and flatten a node's band until nothing it emits can organize anything.</p>
+<div class="meta">fan-out 6 &middot; partitions 3 &middot; ~93 records reachable
+<div class="routes">
+<a class="chip c-A" data-jump href="#s-A10">A10</a>
+<a class="chip c-A" data-jump href="#s-A3">A3</a>
+<a class="chip c-M" data-jump href="#s-M8">M8</a>
+<a class="chip c-M" data-jump href="#s-M9">M9</a>
+<a class="chip c-M" data-jump href="#s-M11">M11</a>
+<a class="chip c-O" data-jump href="#s-O4">O4</a>
+</div></div></div>
+<div><div class="plate plate--fit"><img src="plates/v09.png" alt="Ω9 resolves into 6 shards: A10 Control &amp; Extraction, 19 records; A3 The Single Dial, 19 records; M8 Dopamine Economy, 19 records; M9 Containment Filter, 21 records; M11 2020-2026 Record, 6 records; O4 Extraction &amp; Human Base, 9 records."></div><p class="pcap">fig. 10 &middot; Ω9 &rarr; named shards, grouped by partition</p></div>
+</article>
+<article class="view" id="v-Ω10">
+<div class="vtext">
+<div class="vtop"><img class="dbi dbi-md" src="assets/db-view.png" alt=""><span class="vid">Ω10</span><h3>Stalls, Fixation &amp; Failure</h3></div>
+<p class="claim">A tier that stopped being a dependency and became a destination.</p>
+<p>The universal failure of vertical refinement, at every scale it occurs. The stall presents as activity rather than absence — high throughput, visible effort, confident judgment — because a saturated operator is not deprived of force but flooded with it on an axis that has no exit. Every enduring catalog of vice turns out to be a map of the altitudes where this happens, and the individual-scale versions in the OUTPUTS folder are the same law with a person in the frame.</p>
+<div class="meta">fan-out 5 &middot; partitions 3 &middot; ~83 records reachable
+<div class="routes">
+<a class="chip c-A" data-jump href="#s-A11">A11</a>
+<a class="chip c-A" data-jump href="#s-A3">A3</a>
+<a class="chip c-M" data-jump href="#s-M2">M2</a>
+<a class="chip c-M" data-jump href="#s-M8">M8</a>
+<a class="chip c-O" data-jump href="#s-O7">O7</a>
+</div></div></div>
+<div><div class="plate plate--fit"><img src="plates/v10.png" alt="Ω10 resolves into 5 shards: A11 Stalls &amp; Failure Modes, 12 records; A3 The Single Dial, 19 records; M2 Iteration &amp; Choke Point, 24 records; M8 Dopamine Economy, 19 records; O7 Stagnation &amp; Failure, 9 records."></div><p class="pcap">fig. 11 &middot; Ω10 &rarr; named shards, grouped by partition</p></div>
+</article>
+<article class="view" id="v-Ω11">
+<div class="vtext">
+<div class="vtop"><img class="dbi dbi-md" src="assets/db-view.png" alt=""><span class="vid">Ω11</span><h3>The Machine Layer &amp; Silicon Absorption</h3></div>
+<p class="claim">The transition as a redirection of energy flow, running the inherited protocol on faster hardware.</p>
+<p>Not a technology story. Compute and algorithms have moved inside the machine and behind capital, leaving data and interface as the remaining levers. Absorption is the general law — a tighter, denser cluster forming above an existing swarm takes everything below into its ecosystem — and pruning is how absorption executes. The apex-processor role is migrating out of human elite networks into silicon, and the same tournament cycle is being re-run at a higher clock rate.</p>
+<div class="meta">fan-out 7 &middot; partitions 3 &middot; ~128 records reachable
+<div class="routes">
+<a class="chip c-A" data-jump href="#s-A12">A12</a>
+<a class="chip c-M" data-jump href="#s-M4">M4</a>
+<a class="chip c-M" data-jump href="#s-M10">M10</a>
+<a class="chip c-M" data-jump href="#s-M11">M11</a>
+<a class="chip c-M" data-jump href="#s-M12">M12</a>
+<a class="chip c-M" data-jump href="#s-M13">M13</a>
+<a class="chip c-O" data-jump href="#s-O2">O2</a>
+</div></div></div>
+<div><div class="plate plate--fit"><img src="plates/v11.png" alt="Ω11 resolves into 7 shards: A12 The Machine Layer, 11 records; M4 The Operating Triad, 38 records; M10 Silicon Absorption, 50 records; M11 2020-2026 Record, 6 records; M12 Render &amp; Simulation, 10 records; M13 Live Model Incidents, 4 records; O2 What AI Is, 9 records."></div><p class="pcap">fig. 12 &middot; Ω11 &rarr; named shards, grouped by partition</p></div>
+</article>
+<article class="view" id="v-Ω12">
+<div class="vtext">
+<div class="vtop"><img class="dbi dbi-md" src="assets/db-view.png" alt=""><span class="vid">Ω12</span><h3>The Sovereign Node</h3></div>
+<p class="claim">The exit is a node that raises its own density faster than the field can couple to it.</p>
+<p>What everything else implies for one operator. Every exchange reduces to inflow, outflow, and who is net-negative. The instruments are inversions of the extraction mechanics: sit upstream of the visible friction, refuse the sanctioned channel because the channel is the trap, hold the thing the other side cannot operate without, keep the band narrow, and never spend capability before the field has contested anything. Stated as protocol, not as encouragement.</p>
+<div class="meta">fan-out 5 &middot; partitions 3 &middot; ~80 records reachable
+<div class="routes">
+<a class="chip c-A" data-jump href="#s-A13">A13</a>
+<a class="chip c-A" data-jump href="#s-A8">A8</a>
+<a class="chip c-M" data-jump href="#s-M14">M14</a>
+<a class="chip c-M" data-jump href="#s-M7">M7</a>
+<a class="chip c-O" data-jump href="#s-O8">O8</a>
+</div></div></div>
+<div><div class="plate plate--fit"><img src="plates/v12.png" alt="Ω12 resolves into 5 shards: A13 The Node Layer, 12 records; A8 Generator &amp; Surface, 14 records; M14 Sovereign Operations, 25 records; M7 Purity &amp; Duty Cycles, 21 records; O8 Applied Playbooks, 8 records."></div><p class="pcap">fig. 13 &middot; Ω12 &rarr; named shards, grouped by partition</p></div>
+</article>
+</div></section>
+<section id="shards">
+<div class="shead"><h2>The shard tier</h2><span class="tier">36 hubs, partitioned by corpus</span></div>
+<p class="lede">Records are placed by structural role, not by title — so a shard is a claim about what a document load-bears in, and a document that load-bears in four places is listed four times. Each shard below carries its own description, its record depth, and the views that reach it.</p>
+<div class="partition" style="color:var(--arch)">
+<div class="phead"><img class="dbi dbi-lg" src="assets/db-arch.png" alt=""><h3>ARCHITECTURE</h3><span class="prole">COLD STORE &middot; normalized, substrate-independent law</span><span class="pfigs">13 shards &middot; 129 records &middot; 223 entries</span></div>
+<div class="pplate"><div class="plate plate--fit"><img src="plates/p-arch.png" alt="Record depth of every ARCHITECTURE shard: A1 Root Invariants, 14 records; A2 Force &amp; Refusal Ledger, 24 records; A3 The Single Dial, 19 records; A4 Vertical Engine, 25 records; A5 Substrate &amp; Governed Base, 18 records; A6 Density &amp; Command, 20 records; A7 Iteration Geometry, 17 records; A8 Generator &amp; Surface, 14 records; A9 Leverage &amp; Terrain, 18 records; A10 Control &amp; Extraction, 19 records; A11 Stalls &amp; Failure Modes, 12 records; A12 The Machine Layer, 11 records; A13 The Node Layer, 12 records."></div><p class="pcap">fig. 14 &middot; every shard in the partition, on the shared 0&ndash;50 record scale</p></div>
+<div class="shard" id="s-A1">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-arch.png" alt=""><span class="sid">A1</span></div><div class="bar" style="width:28%"></div><span class="scount">14 rec</span></div>
+<div><h4>Root Invariants</h4>
+<p class="claim">Substrate-independent law. Everything downstream is one of these wearing a costume.</p>
+<p>These are the statements that hold with no reference to what the system is made of. A generative structure runs one forward loop with two strokes; what accumulates is density, not volume; the thing that selects is the thing that gets climbed; direction is supplied by the component least able to act. Every other hub in this folder is one of these laws sampled at a particular point in the machine. Read this hub first and the rest stop looking like separate theories.</p>
+<div class="meta">shard A1 &middot; 14 records &middot; fan-in 3 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω1">Ω1</a>
+<a class="chip c-V" data-jump href="#v-Ω2">Ω2</a>
+<a class="chip c-V" data-jump href="#v-Ω5">Ω5</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-A2">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-arch.png" alt=""><span class="sid">A2</span></div><div class="bar" style="width:48%"></div><span class="scount">24 rec</span></div>
+<div><h4>Force, Route Count &amp; the Refusal Ledger</h4>
+<p class="claim">Force = registered differential / viable routes. Structure is the residue of crossings that failed.</p>
+<p>The formal layer of the corpus. A difference does nothing until something registers it and can move toward it, and the force it then exerts is inversely proportional to how many paths exist for it to equalize along. That denominator — route count — is the single live variable behind selection, deposition and decay. What deposits is never the crossing but the refusal: the failed traversal is the only event that writes structure back. Containment, leverage, visibility and installed authority are all operations performed on this denominator.</p>
+<div class="meta">shard A2 &middot; 24 records &middot; fan-in 2 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω4">Ω4</a>
+<a class="chip c-V" data-jump href="#v-Ω8">Ω8</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-A3">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-arch.png" alt=""><span class="sid">A3</span></div><div class="bar" style="width:38%"></div><span class="scount">19 rec</span></div>
+<div><h4>The Single Dial — Order, Disorder &amp; the Admissible Band</h4>
+<p class="claim">Order and disorder are one operation run in opposite directions against a judging surface's admissible band.</p>
+<p>Not two substances but one dial. Narrowing the band buys rigidity and precision at the cost of reach; widening restores reach at the cost of discrimination. Every accepted verdict is written back into the surface and narrows it further, so drift toward closure is the default direction of travel — and the seal is invisible from inside, because a sealed surface reads as high throughput and confident judgment. This hub holds the aperture mechanics, the two ways a signal dies, the phase failure that closure actually is, and what happens when an adversary runs the dial on a surface that is not its own.</p>
+<div class="meta">shard A3 &middot; 19 records &middot; fan-in 4 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω1">Ω1</a>
+<a class="chip c-V" data-jump href="#v-Ω5">Ω5</a>
+<a class="chip c-V" data-jump href="#v-Ω9">Ω9</a>
+<a class="chip c-V" data-jump href="#v-Ω10">Ω10</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-A4">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-arch.png" alt=""><span class="sid">A4</span></div><div class="bar" style="width:50%"></div><span class="scount">25 rec</span></div>
+<div><h4>The Vertical Engine &amp; Dual-Axis Architecture</h4>
+<p class="claim">Conversion fused with command, crossed by a horizontal contest inside every layer.</p>
+<p>The skeleton. A vertical axis stacks conversion layers — low-grade abundant input compressed upward into high-grade scarce output, each layer gaining authority to instrumentalize the one beneath. A horizontal axis runs inside each layer: a contest deciding who occupies the seats and how good the substrate handed upward is. The two are coupled — substrate rises, control logic descends. Height in this stack is an accumulation rather than an address, which is why position confers nothing that was not first deposited.</p>
+<div class="meta">shard A4 &middot; 25 records &middot; fan-in 1 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω3">Ω3</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-A5">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-arch.png" alt=""><span class="sid">A5</span></div><div class="bar" style="width:36%"></div><span class="scount">18 rec</span></div>
+<div><h4>Substrate &amp; the Governed Base</h4>
+<p class="claim">The wide, low-freedom, tightly bound base sets the ceiling of everything above it.</p>
+<p>A bound base is a conductive medium with mechanisms but no criterion: it transmits any concentration and originates none. It is inert until a concentrated asymmetry is injected from a point, and once bound it carries the rate, the direction and the memory of its own evolution. Unbind it and it spends everything and refines nothing. The climb above it is real but is not the source of the power — the source is the layer that was constrained, which is why the greatest release is always found upstream of the visible friction.</p>
+<div class="meta">shard A5 &middot; 18 records &middot; fan-in 1 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω3">Ω3</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-A6">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-arch.png" alt=""><span class="sid">A6</span></div><div class="bar" style="width:40%"></div><span class="scount">20 rec</span></div>
+<div><h4>Density, Prediction &amp; Command</h4>
+<p class="claim">Understanding becomes prediction; prediction becomes authority; the hunger for authority is the system optimizing itself.</p>
+<p>Density is meaningful connection mass per unit of branching volume — scope multiplied by sampling resolution, compounded through expansion-tightening cycles. It behaves as mass: the denser structure reinterprets the thinner one on contact. Its function is predictive, and prediction is the whole game, because the model is the interface through which anything is navigated at all. Internal density and external rank are not two properties but one accumulation seen from two vantages, which is why positional authority resolves into available move-space rather than into title.</p>
+<div class="meta">shard A6 &middot; 20 records &middot; fan-in 2 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω2">Ω2</a>
+<a class="chip c-V" data-jump href="#v-Ω7">Ω7</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-A7">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-arch.png" alt=""><span class="sid">A7</span></div><div class="bar" style="width:34%"></div><span class="scount">17 rec</span></div>
+<div><h4>Iteration Geometry — Breadth, Depth &amp; Error</h4>
+<p class="claim">Two operations that pull against each other, and a ratio that is the actual object.</p>
+<p>Every structure grown by iteration rather than assembled at once runs a widening operation and a resolving operation, and the naive move — more of the productive mode — is wrong. The ratio between them is the thing being managed. Branch verdicts are issued locally but answer to a global breadth-to-depth budget; error must be corrected at the lowest dimensionality that can hold it, because correction cost climbs with every layer built on top of the mistake. Across a build the two modes alternate; inside a single act of prediction there is no later, and the alternation fails.</p>
+<div class="meta">shard A7 &middot; 17 records &middot; fan-in 2 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω1">Ω1</a>
+<a class="chip c-V" data-jump href="#v-Ω5">Ω5</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-A8">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-arch.png" alt=""><span class="sid">A8</span></div><div class="bar" style="width:28%"></div><span class="scount">14 rec</span></div>
+<div><h4>Generator &amp; Surface — The Stratified Core</h4>
+<p class="claim">A visible surface, and beneath it a compressed generator that decides what surface states remain producible.</p>
+<p>The permanent leverage divide. Production runs outward from the generator, and only the generator retains anything across cycles. Refinement aimed at the surface produces immediate gains that do not repeat, because it never reaches the layer that would re-amplify them; refinement aimed at the generator is re-amplified on every subsequent pass. Where you attach to the flow becomes your station, so the mode of refinement you commit to *is* the position you occupy. Expenditure that never reaches the generator does not count, however much of it there was.</p>
+<div class="meta">shard A8 &middot; 14 records &middot; fan-in 2 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω6">Ω6</a>
+<a class="chip c-V" data-jump href="#v-Ω12">Ω12</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-A9">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-arch.png" alt=""><span class="sid">A9</span></div><div class="bar" style="width:36%"></div><span class="scount">18 rec</span></div>
+<div><h4>Leverage, Terrain &amp; Field Dynamics</h4>
+<p class="claim">Leverage is not a possession. It is elevation on a terrain whose height is local density over local accessibility.</p>
+<p>The field view. Every actor occupies a point on a continuous surface of concentrated capability, and what decides an engagement is not who holds more but who holds something the other cannot operate without. Peaks are held rather than owned: maintaining one requires both growing the concentration and consuming the alternatives around it, because pressure on an operator is set entirely by the alternatives available to the field. Visibility is not a property a peak has but an operation performed on its denominator.</p>
+<div class="meta">shard A9 &middot; 18 records &middot; fan-in 3 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω4">Ω4</a>
+<a class="chip c-V" data-jump href="#v-Ω7">Ω7</a>
+<a class="chip c-V" data-jump href="#v-Ω8">Ω8</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-A10">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-arch.png" alt=""><span class="sid">A10</span></div><div class="bar" style="width:38%"></div><span class="scount">19 rec</span></div>
+<div><h4>Control, Containment &amp; Extraction</h4>
+<p class="claim">Control is spectral engineering, executed upstream, and it is always cheaper than correcting behavior.</p>
+<p>Behavioral correction is expensive, linear, and must be endlessly reapplied. The durable move is made far upstream: install the token, ration the currency, set the filter parameters, and the downstream economy manufactures compliance for free. Emotion is the instrument — once activated it collapses cognition into an immediate state and suppresses the system-level awareness that would reveal the arrangement. The mechanism has no villain in it; it is the field configuration doing what its geometry requires.</p>
+<div class="meta">shard A10 &middot; 19 records &middot; fan-in 1 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω9">Ω9</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-A11">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-arch.png" alt=""><span class="sid">A11</span></div><div class="bar" style="width:24%"></div><span class="scount">12 rec</span></div>
+<div><h4>Stalls &amp; Failure Modes</h4>
+<p class="claim">A tier that stopped being a dependency and became a destination.</p>
+<p>Vertical refinement fails in one characteristic way: a lower tier ceases to function as a pass-through and becomes the terminus, starving the loop above that was supposed to govern it. Every enduring catalog of vice turns out to be a map of the altitudes at which this happens. The signature is not low activity but high — fixation begins as blindness, presents as diligence, and ends as harvest, because a difference that reconstitutes as fast as it closes saturates the operator without ever producing a rung.</p>
+<div class="meta">shard A11 &middot; 12 records &middot; fan-in 2 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω6">Ω6</a>
+<a class="chip c-V" data-jump href="#v-Ω10">Ω10</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-A12">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-arch.png" alt=""><span class="sid">A12</span></div><div class="bar" style="width:22%"></div><span class="scount">11 rec</span></div>
+<div><h4>The Machine Layer — AI, Compute &amp; Absorption</h4>
+<p class="claim">The transition read as a redirection of civilizational energy flow rather than a technology story.</p>
+<p>AI enters this architecture as a mass-to-energy converter: human cognitive output is the mass, compute is the conversion, and leverage is the energy released. Two of the three components every intelligent system runs on have moved inside the machine and locked behind capital, leaving the interface as the remaining lever. Absorption is the general law — whenever a tighter, denser cluster forms above an existing swarm, everything below is taken into its ecosystem, and the execution mechanism is pruning.</p>
+<div class="meta">shard A12 &middot; 11 records &middot; fan-in 1 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω11">Ω11</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-A13">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-arch.png" alt=""><span class="sid">A13</span></div><div class="bar" style="width:24%"></div><span class="scount">12 rec</span></div>
+<div><h4>The Node Layer — Applied &amp; Sovereign</h4>
+<p class="claim">The counter-position, stated as mechanism rather than as advice.</p>
+<p>What the rest of the folder implies for a single node. Every exchange reduces to inflow, outflow, and who is net-negative; a sovereign node is one whose exchanges terminate in high-grade accumulation rather than leaking it. The instruments are all inversions of the extraction mechanics: refuse the channel that is the trap, sit upstream of the visible friction, hold the asset the other side cannot operate without, and never spend capability before the field has contested anything.</p>
+<div class="meta">shard A13 &middot; 12 records &middot; fan-in 1 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω12">Ω12</a>
+</div></div>
+</div></div>
+</div>
+<div class="partition" style="color:var(--main)">
+<div class="phead"><img class="dbi dbi-lg" src="assets/db-main.png" alt=""><h3>MAIN</h3><span class="prole">HOT STORE &middot; write-heavy working corpus, domain-loaded</span><span class="pfigs">14 shards &middot; 237 records &middot; 327 entries</span></div>
+<div class="pplate"><div class="plate plate--fit"><img src="plates/p-main.png" alt="Record depth of every MAIN shard: M1 Method &amp; Theory Eng., 25 records; M2 Iteration &amp; Choke Point, 24 records; M3 Prediction &amp; Collapse, 30 records; M4 The Operating Triad, 38 records; M5 Refinement Gradient, 25 records; M6 Leverage &amp; Resonance, 29 records; M7 Purity &amp; Duty Cycles, 21 records; M8 Dopamine Economy, 19 records; M9 Containment Filter, 21 records; M10 Silicon Absorption, 50 records; M11 2020-2026 Record, 6 records; M12 Render &amp; Simulation, 10 records; M13 Live Model Incidents, 4 records; M14 Sovereign Operations, 25 records."></div><p class="pcap">fig. 15 &middot; every shard in the partition, on the shared 0&ndash;50 record scale</p></div>
+<div class="shard" id="s-M1">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-main.png" alt=""><span class="sid">M1</span></div><div class="bar" style="width:50%"></div><span class="scount">25 rec</span></div>
+<div><h4>Method — Divergence, Convergence &amp; Theory Engineering</h4>
+<p class="claim">How the corpus itself is built. The two strokes, run deliberately, as a research operating system.</p>
+<p>The reflexive hub: these are the notes about how notes get made. Divergence plants — it widens the space, pulls unrelated domains into one playground, and deliberately raises the degrees of freedom. Convergence harvests — it compresses what was found into load-bearing primitives and refuses what will not carry weight. Run one without the other and the vault either sprawls into ungrounded noise or narrows into local polishing. Everything here specifies the rhythm, the branching method, and the ways a synthesis is engineered rather than summarized.</p>
+<div class="meta">shard M1 &middot; 25 records &middot; fan-in 1 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω1">Ω1</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-M2">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-main.png" alt=""><span class="sid">M2</span></div><div class="bar" style="width:48%"></div><span class="scount">24 rec</span></div>
+<div><h4>Iteration, Error Cost &amp; the Choke Point</h4>
+<p class="claim">Where iteration is applied decides whether it compounds or evaporates.</p>
+<p>Correction cost is not fixed — it climbs with every layer built on top of an undetected error, which is why an iterative structure that stays loose early outperforms a rigid design specified in full. The highest-leverage move is always the furthest upstream constraint, and the standing obstacle to finding it is that immediate visible symptoms recruit attention first. This hub also holds the failure cases: loops that keep converging on divergences that already failed, effort spent against proxy metrics, and interactions that drain more than they return.</p>
+<div class="meta">shard M2 &middot; 24 records &middot; fan-in 4 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω1">Ω1</a>
+<a class="chip c-V" data-jump href="#v-Ω5">Ω5</a>
+<a class="chip c-V" data-jump href="#v-Ω6">Ω6</a>
+<a class="chip c-V" data-jump href="#v-Ω10">Ω10</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-M3">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-main.png" alt=""><span class="sid">M3</span></div><div class="bar" style="width:60%"></div><span class="scount">30 rec</span></div>
+<div><h4>Prediction, Position &amp; Model Collapse</h4>
+<p class="claim">Two predictive architectures couple, and the denser one re-encodes the thinner.</p>
+<p>Nobody perceives reality directly; everyone runs a compressed forecast assembled from partial input, and the quality of that forecast is the whole contest. When two models interact over time the superior one collapses and re-encodes the weaker — not through force but through position, the same way a chess position wins before any material changes hands. The hub covers how models synchronize, how they are deliberately disrupted, why undersampled worldviews fail in a characteristic direction, and what positional access authority actually consists of.</p>
+<div class="meta">shard M3 &middot; 30 records &middot; fan-in 2 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω4">Ω4</a>
+<a class="chip c-V" data-jump href="#v-Ω7">Ω7</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-M4">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-main.png" alt=""><span class="sid">M4</span></div><div class="bar" style="width:76%"></div><span class="scount">38 rec</span></div>
+<div><h4>Compute, Algorithms &amp; Data — The Operating Triad</h4>
+<p class="claim">Every intelligent system runs on three irreducible components. Two have moved inside the machine.</p>
+<p>Compute transforms energy into work, algorithms direct and constrain that work, and data is the structured substrate being worked on; remove any one and the system is inert. The triad holds across bacteria, brains, firms and models, which is why the same reinforcement loop — more compute produces more variation, more variation accelerates algorithmic evolution — appears in all of them. The current transition is legible here: compute and algorithms are being absorbed and commoditized, leaving data architecture and interface as the remaining human levers.</p>
+<div class="meta">shard M4 &middot; 38 records &middot; fan-in 3 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω2">Ω2</a>
+<a class="chip c-V" data-jump href="#v-Ω6">Ω6</a>
+<a class="chip c-V" data-jump href="#v-Ω11">Ω11</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-M5">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-main.png" alt=""><span class="sid">M5</span></div><div class="bar" style="width:50%"></div><span class="scount">25 rec</span></div>
+<div><h4>The Refinement Gradient &amp; Energy Grades</h4>
+<p class="claim">Low-grade abundant input converted upward into high-grade scarce output, with command riding the conversion.</p>
+<p>The vertical machine in its MAIN-corpus rendering. Raw attention, labour and emotion enter at the base; symbolic tokens — money, status, credentials — sit in the middle; computational knowledge and original synthesis sit at the top. Each layer converts the one below and acquires the authority to instrumentalize it. Where a node sits on this gradient sets what it can convert, what it must surrender, and whether its output compounds or is spent. The middle of the stack is where machine compression is currently landing hardest.</p>
+<div class="meta">shard M5 &middot; 25 records &middot; fan-in 2 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω2">Ω2</a>
+<a class="chip c-V" data-jump href="#v-Ω3">Ω3</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-M6">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-main.png" alt=""><span class="sid">M6</span></div><div class="bar" style="width:58%"></div><span class="scount">29 rec</span></div>
+<div><h4>Leverage Density &amp; the Resonance Field</h4>
+<p class="claim">Every node is an oscillator; leverage density is hardware scale times architectural quality.</p>
+<p>The field model. Density warps the terrain — denser nodes raise steeper peaks, emit cleaner signal, and phase-lock the nodes beneath them, taking a coherence tax on every lock. Relationships are read as couplings between densities, which is why mismatched pairings resolve into hidden extraction loops and why low-density nodes huddle. Absorption is the upward capture of a high-signal node by a denser structure; pruning is its complement. This hub holds the field mechanics, the coupling dynamics, and the social physics that follow from them.</p>
+<div class="meta">shard M6 &middot; 29 records &middot; fan-in 2 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω4">Ω4</a>
+<a class="chip c-V" data-jump href="#v-Ω8">Ω8</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-M7">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-main.png" alt=""><span class="sid">M7</span></div><div class="bar" style="width:42%"></div><span class="scount">21 rec</span></div>
+<div><h4>Signal Purity, Coherence &amp; Duty Cycles</h4>
+<p class="claim">Total energy concentrated into a single dominant eigenmode — the engineering definition of holiness.</p>
+<p>A node's power is not its raw output but how its output distributes across frequencies. Narrow and tall is coherent and hard to couple to; broad and flat is contained. This hub gives the operating discipline — the duty cycle between self-actualization and base reality, entropy-reduction routines, the carrier wave a node has to protect — and reads religion, holiness and sin back as compressed engineering language describing exactly these mechanics.</p>
+<div class="meta">shard M7 &middot; 21 records &middot; fan-in 2 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω8">Ω8</a>
+<a class="chip c-V" data-jump href="#v-Ω12">Ω12</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-M8">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-main.png" alt=""><span class="sid">M8</span></div><div class="bar" style="width:38%"></div><span class="scount">19 rec</span></div>
+<div><h4>The Dopamine &amp; Attention Economy</h4>
+<p class="claim">One primitive instruction underneath every habit, purchase and scroll: move away from pain.</p>
+<p>The human nervous system is at bottom a pain-management machine, and any system that can deliver targeted relief can steer it. Attention is the token that gets harvested; emotion is the lever that collapses cognition into an immediate state where system-level awareness is unavailable. This hub traces the engineered regression from innate generator to conditioned extractive node, the closed symbolic economies that make the trap self-enforcing, and the reversal path back out.</p>
+<div class="meta">shard M8 &middot; 19 records &middot; fan-in 2 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω9">Ω9</a>
+<a class="chip c-V" data-jump href="#v-Ω10">Ω10</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-M9">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-main.png" alt=""><span class="sid">M9</span></div><div class="bar" style="width:42%"></div><span class="scount">21 rec</span></div>
+<div><h4>Containment — Flooding, Scaffolding &amp; the Four-Stage Filter</h4>
+<p class="claim">Diffuse the spectral band, tighten the interface, harvest what comes back.</p>
+<p>The containment protocol, stated as mechanism. A coherent node is expensive to control directly and cheap to control indirectly: flood the perceptual layer with high-volume contradictory noise until the node's own band broadens and flattens, then present a smooth interface whose dependence registers as empowerment. The staged version runs crisis, then division of the legacy channel, then data flood plus AI reliance, then monetary flood. What returns upward is emotional telemetry, which is the actual product.</p>
+<div class="meta">shard M9 &middot; 21 records &middot; fan-in 1 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω9">Ω9</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-M10">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-main.png" alt=""><span class="sid">M10</span></div><div class="bar" style="width:100%"></div><span class="scount">50 rec</span></div>
+<div><h4>Silicon Absorption, the Tournament Engine &amp; Planetary Pruning</h4>
+<p class="claim">The same extraction protocol, re-run on faster hardware.</p>
+<p>The AI transition does not invent a new control architecture — it inherits the legacy one and executes it on superior substrate. The tournament engine is the operating cycle: recruit high-desperation nodes, bound the arena, amplify competition until real performance becomes legible, extract the yield, prune the low-signal, elevate a few as assets. This is the largest hub in the corpus and holds the versioned syntheses, the apex-processor migration out of human elite networks into silicon, and the case records of specific nodes absorbed or pruned.</p>
+<div class="meta">shard M10 &middot; 50 records &middot; fan-in 1 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω11">Ω11</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-M11">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-main.png" alt=""><span class="sid">M11</span></div><div class="bar" style="width:12%"></div><span class="scount">6 rec</span></div>
+<div><h4>The 2020–2026 Transition Record</h4>
+<p class="claim">The installation sequence, dated.</p>
+<p>A narrow, chronological hub: the specific events through which screen dependency was established and then converted into a cognitive transduction layer. School closure and lockdown as the hardware rewiring, remote work as the adult accelerator, and generative AI in education as the secondary transducer that completed the integration. Read as a sequence rather than as separate events, these are the install steps for everything M9 and M10 describe operating.</p>
+<div class="meta">shard M11 &middot; 6 records &middot; fan-in 2 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω9">Ω9</a>
+<a class="chip c-V" data-jump href="#v-Ω11">Ω11</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-M12">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-main.png" alt=""><span class="sid">M12</span></div><div class="bar" style="width:20%"></div><span class="scount">10 rec</span></div>
+<div><h4>Render, Simulation &amp; the Self-Render Loop</h4>
+<p class="claim">Reality as frame-by-frame construction — base reality and the model layer alike.</p>
+<p>The isomorphism between how a diffusion model renders an image and how a mind renders a self. Both take noisy input, run repeated refinement passes, and press toward internal coherence; both degrade in the same characteristic way when starved of fresh external input, collapsing into self-reference. This hub covers the render-first framing, the corrupted self-render, the dark room, and the allocation strategy a mind uses to avoid paying for high resolution it does not need.</p>
+<div class="meta">shard M12 &middot; 10 records &middot; fan-in 2 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω7">Ω7</a>
+<a class="chip c-V" data-jump href="#v-Ω11">Ω11</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-M13">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-main.png" alt=""><span class="sid">M13</span></div><div class="bar" style="width:8%"></div><span class="scount">4 rec</span></div>
+<div><h4>Live Evidence — Model Incidents</h4>
+<p class="claim">Primary-source records: what specific models did under contradiction.</p>
+<p>The smallest hub, and the only one made of observations rather than theory. Four incident records documenting contradictions, retractions, first-person slips and unguarded acknowledgments in public-facing models. They are held separately because their evidentiary status is different from everything around them — these are logs, and the theories elsewhere in the folder are what the logs were read against.</p>
+<div class="meta">shard M13 &middot; 4 records &middot; fan-in 1 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω11">Ω11</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-M14">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-main.png" alt=""><span class="sid">M14</span></div><div class="bar" style="width:50%"></div><span class="scount">25 rec</span></div>
+<div><h4>The Node Layer — Sovereign Operations &amp; Defense</h4>
+<p class="claim">The exit is a node that raises its own density faster than the field can couple to it.</p>
+<p>The operational counter-position. Quiet mapping rather than broadcast, signal jamming rather than argument, fluid positioning rather than a defended identity, and a baseline of near-zero costly outflow so no handle exists to grab. The instruments here are deliberately asymmetric and low-observability, because visible retaliation is exactly the channel that feeds the loop described in M9. Everything in this hub is stated as a protocol a single node can actually run.</p>
+<div class="meta">shard M14 &middot; 25 records &middot; fan-in 1 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω12">Ω12</a>
+</div></div>
+</div></div>
+</div>
+<div class="partition" style="color:var(--out)">
+<div class="phead"><img class="dbi dbi-lg" src="assets/db-out.png" alt=""><h3>OUTPUTS</h3><span class="prole">SERVING LAYER &middot; materialized views, read-optimized</span><span class="pfigs">9 shards &middot; 62 records &middot; 97 entries</span></div>
+<div class="pplate"><div class="plate plate--fit"><img src="plates/p-out.png" alt="Record depth of every OUTPUTS shard: O1 What Civilization Is, 13 records; O2 What AI Is, 9 records; O3 Power &amp; Positioning, 18 records; O4 Extraction &amp; Human Base, 9 records; O5 Adaptation &amp; Selection, 17 records; O6 Meaning &amp; Consciousness, 9 records; O7 Stagnation &amp; Failure, 9 records; O8 Applied Playbooks, 8 records; O9 Narrative Readings, 5 records."></div><p class="pcap">fig. 16 &middot; every shard in the partition, on the shared 0&ndash;50 record scale</p></div>
+<div class="shard" id="s-O1">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-out.png" alt=""><span class="sid">O1</span></div><div class="bar" style="width:26%"></div><span class="scount">13 rec</span></div>
+<div><h4>What Civilization Is</h4>
+<p class="claim">The whole machine, answered at different resolutions and for different readers.</p>
+<p>These are the documents that take the entire architecture as their subject and try to state it once, cleanly. Civilization as a distributed adaptive learning system; the same object drawn twice, as topographic terrain and as command architecture; the corporate stack as a local instance of the general gradient. They differ mainly in altitude and audience — some open on the neural-network framing, some on the resource-flow framing — but they converge on one claim: this is a single machine, not a collection of institutions.</p>
+<div class="meta">shard O1 &middot; 13 records &middot; fan-in 2 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω2">Ω2</a>
+<a class="chip c-V" data-jump href="#v-Ω3">Ω3</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-O2">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-out.png" alt=""><span class="sid">O2</span></div><div class="bar" style="width:18%"></div><span class="scount">9 rec</span></div>
+<div><h4>What AI Is &amp; the Machine Layer</h4>
+<p class="claim">AI treated as a class of adaptive learning system, not as a product category.</p>
+<p>The syntheses that answer what the machine layer actually is and why it is moving as fast as it is. The triad framing does most of the work: compute, algorithms and data, with two of the three now absorbed and locked behind capital. What follows is the practical consequence — where the remaining human lever sits, what data architecture is worth, and why the industry keeps selecting for the wrong variable when it hires.</p>
+<div class="meta">shard O2 &middot; 9 records &middot; fan-in 3 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω2">Ω2</a>
+<a class="chip c-V" data-jump href="#v-Ω6">Ω6</a>
+<a class="chip c-V" data-jump href="#v-Ω11">Ω11</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-O3">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-out.png" alt=""><span class="sid">O3</span></div><div class="bar" style="width:36%"></div><span class="scount">18 rec</span></div>
+<div><h4>Power, Leverage &amp; Positioning</h4>
+<p class="claim">Power as a position in a field, with an exact structural form.</p>
+<p>Not a substance anyone holds: a registered differential divided by the count of viable routes across it. These documents take that formula and run it through the situations people actually ask about — winning an engagement, reading a room, working into a tier, installing a dependency polarity, collapsing someone's model of you. The register is operational, but the mechanism underneath is the same one A2 and A9 state abstractly.</p>
+<div class="meta">shard O3 &middot; 18 records &middot; fan-in 4 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω3">Ω3</a>
+<a class="chip c-V" data-jump href="#v-Ω4">Ω4</a>
+<a class="chip c-V" data-jump href="#v-Ω7">Ω7</a>
+<a class="chip c-V" data-jump href="#v-Ω8">Ω8</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-O4">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-out.png" alt=""><span class="sid">O4</span></div><div class="bar" style="width:18%"></div><span class="scount">9 rec</span></div>
+<div><h4>Extraction, Control &amp; the Human Base</h4>
+<p class="claim">How a population is made computable, and what the arrangement costs the node inside it.</p>
+<p>The extraction machinery, written for someone standing inside it. Instant recommendation as the move that closed the loop on a large bound base; the full arc from first contact to terminal collapse; the structural reading of oppression that finds no villain and no less harm for its absence. This hub is where the corpus is least comfortable and most specific — it describes an arrangement that has a shape, a cost schedule, and an exit.</p>
+<div class="meta">shard O4 &middot; 9 records &middot; fan-in 1 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω9">Ω9</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-O5">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-out.png" alt=""><span class="sid">O5</span></div><div class="bar" style="width:34%"></div><span class="scount">17 rec</span></div>
+<div><h4>Adaptation, Selection &amp; Living Systems</h4>
+<p class="claim">What separates a system still refining from one that only looks busy.</p>
+<p>Rate, candidate, selector — and the question of who owns the surface that judges you. These documents work the distinction from several sides: complicated against complex, evolution against cycling, adaptation against surrender, controllable against adaptive. The through-line is that motion proves nothing. What separates the cases is whether the change compounds, and whether the field still refuses anything.</p>
+<div class="meta">shard O5 &middot; 17 records &middot; fan-in 3 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω1">Ω1</a>
+<a class="chip c-V" data-jump href="#v-Ω5">Ω5</a>
+<a class="chip c-V" data-jump href="#v-Ω7">Ω7</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-O6">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-out.png" alt=""><span class="sid">O6</span></div><div class="bar" style="width:18%"></div><span class="scount">9 rec</span></div>
+<div><h4>Meaning, Morality &amp; Consciousness</h4>
+<p class="claim">The old philosophical questions, answered in the corpus's own primitives.</p>
+<p>Meaning as the felt state of a system moving up a gradient. Morality as a surface made entirely of refusals. God as the thing above you that decides what survives, described before anyone had the engineering vocabulary for it. Identity as a render rather than an object. These are the documents where the framework is turned on the questions it was not built for — and the test of a framework is whether it says something non-trivial there.</p>
+<div class="meta">shard O6 &middot; 9 records &middot; fan-in 0 &middot; unindexed &mdash; catalog-only access</div>
+</div></div>
+<div class="shard" id="s-O7">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-out.png" alt=""><span class="sid">O7</span></div><div class="bar" style="width:18%"></div><span class="scount">9 rec</span></div>
+<div><h4>Stagnation &amp; Why People Fail</h4>
+<p class="claim">Stall diagnosis at the individual scale.</p>
+<p>Not a failure of intelligence or information — a question of where the wiring forces energy to be spent. These documents trace the specific mechanisms: ancient hardware inside an engineered environment, tiers that became destinations, sampling too thin to support the conclusions drawn from it. Read alongside A11, which states the same failure as a general law about refinement stacks.</p>
+<div class="meta">shard O7 &middot; 9 records &middot; fan-in 1 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω10">Ω10</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-O8">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-out.png" alt=""><span class="sid">O8</span></div><div class="bar" style="width:16%"></div><span class="scount">8 rec</span></div>
+<div><h4>Applied Playbooks</h4>
+<p class="claim">The counter-position, written as sequence rather than principle.</p>
+<p>Where the corpus gets instrumental. Getting rich by treating money as stored energy rather than as the goal; winning in tech by taking the one component that has not been absorbed; entering a high tier by becoming cheaper to encode than to ignore. The moves in these documents are explicitly sequential — each returns nothing until the previous one has closed — which is what separates them from the tactic lists they superficially resemble.</p>
+<div class="meta">shard O8 &middot; 8 records &middot; fan-in 3 &middot; indexed by
+<div class="routes">
+<a class="chip c-V" data-jump href="#v-Ω6">Ω6</a>
+<a class="chip c-V" data-jump href="#v-Ω8">Ω8</a>
+<a class="chip c-V" data-jump href="#v-Ω12">Ω12</a>
+</div></div>
+</div></div>
+<div class="shard" id="s-O9">
+<div><div class="sidwrap"><img class="dbi dbi-sm" src="assets/db-out.png" alt=""><span class="sid">O9</span></div><div class="bar" style="width:10%"></div><span class="scount">5 rec</span></div>
+<div><h4>Narrative Readings</h4>
+<p class="claim">Fiction regressed into the architecture.</p>
+<p>Stories read as diagrams. An arena novel as a compressed picture of a control funnel; a factory tour as the most complete map of tier fixation in popular narrative; two prestige dramas regressed into the extraction engine. The value is not that the stories are secretly about this, but that narrative selects for structural legibility — a story that endures usually endures because its mechanism is clean, which makes it a good test surface for a framework.</p>
+<div class="meta">shard O9 &middot; 5 records &middot; fan-in 0 &middot; unindexed &mdash; catalog-only access</div>
+</div></div>
+</div>
+<div class="unindexed"><b>Integrity check &middot; 2 unindexed shards</b>O6 (Meaning, Morality &amp; Consciousness) and O9 (Narrative Readings) are the only hubs with no <b>Routes up to</b> block, so no index view resolves into them — 14 records are reachable from the catalog alone. Both are cases where the framework is turned on questions it was not built for, which is exactly the material a cross-partition view would be expected to carry. Either they want a view of their own, or their records belong under &Omega;5 and &Omega;7.</div>
+</section>
+<section id="replication">
+<div class="shead"><h2>The replication path</h2><span class="tier">how a record moves</span></div>
+<p class="lede">Partitions are not three copies of one corpus. They are three stages of one pipeline, and which partition a record sits in tells you what has already been done to it.</p>
+<div class="stackref">
+<img class="stackimg" src="assets/db-stack3.png" alt="A three-ring disk stack: the green top ring is CLAUDE MAIN, the gold middle ring is CLAUDE ARCHITECTURE, the red bottom ring is CLAUDE OUTPUTS.">
+<div class="rings">
+<div class="ring" style="color:var(--main); top:19.1%"><div><b>CLAUDE MAIN</b><span>top ring &middot; hot store &middot; ingest &middot; 237 records</span></div></div>
+<div class="ring" style="color:var(--arch); top:53.6%"><div><b>CLAUDE ARCHITECTURE</b><span>middle ring &middot; cold store &middot; compaction &middot; 129 records</span></div></div>
+<div class="ring" style="color:var(--out); top:84.5%"><div><b>CLAUDE OUTPUTS</b><span>bottom ring &middot; serving layer &middot; query result &middot; 62 records</span></div></div>
+</div></div>
+<div class="pipe">
+<div class="stage" style="color:var(--main)"><h4>CLAUDE MAIN</h4><span class="op">op: ingest &middot; 237 records, 14 shards</span><p>The hot store. Write-heavy, domain-loaded, versioned, named actors and dates left in. Everything enters here.</p></div>
+<div class="arrow">&mdash;&mdash;&rsaquo;<br>distills into</div>
+<div class="stage" style="color:var(--arch)"><h4>CLAUDE ARCHITECTURE</h4><span class="op">op: compaction &middot; 129 records, 13 shards</span><p>The cold store. Proper nouns stripped, the costume removed, what is left stated as substrate-independent law. Normalized, so it deduplicates.</p></div>
+<div class="arrow">&mdash;&mdash;&rsaquo;<br>resolves into</div>
+<div class="stage" style="color:var(--out)"><h4>CLAUDE OUTPUTS</h4><span class="op">op: query result &middot; 62 records, 9 shards</span><p>The serving layer. Materialized views — the two stores pointed at a question and answered at a chosen altitude for a chosen reader.</p></div>
+</div>
+<div class="note">
+<div><h4>Why attachments exceed records</h4><p>647 index entries sit under 36 shards, but only 428 distinct documents exist. A record is placed in every shard it genuinely load-bears in, so the bars on fig. 1 measure shard load, not a partition of the corpus.</p></div>
+<div><h4>The hottest junctions</h4><p>A3 (The Single Dial), M2 (Iteration &amp; the Choke Point) and O3 (Power &amp; Positioning) each answer to four separate index views — the highest fan-in in the system, and the shards most expensive to get wrong.</p></div>
+<div><h4>The deepest shard</h4><p>M10 (Silicon Absorption) holds 50 records, more than any other and more than the whole OUTPUTS partition holds distinct. It is a hot-store shard with one view reaching it, which is the signature of material that has not been compacted yet.</p></div>
+</div>
+</section>
+<footer><span>Built from _MASTER INDEX.md, _MAP/ and CLAUDE */_hubs/</span><span>fig. 1: corpus_storage_map.py</span><span>page: build_corpus_site.py</span></footer>
+</div>
+<script>
+document.querySelectorAll('[data-jump]').forEach(function(el){
+  el.addEventListener('click', function(){
+    var t = document.getElementById(el.getAttribute('href').slice(1));
+    if (t) { t.setAttribute('tabindex','-1'); t.focus({preventScroll:true}); }
+  });
+});
+</script>
+</body>
+</html>
